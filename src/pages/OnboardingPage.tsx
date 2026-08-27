@@ -58,9 +58,7 @@ export function OnboardingPage(): ReactNode {
     setError(null);
     setLoading(true);
     try {
-      const { error: rpcError } = await supabase.rpc('complete_onboarding', {
-        p_platform: 'routesred',
-      });
+      const { error: rpcError } = await supabase.rpc('complete_onboarding');
       if (rpcError) {
         setError('No se pudo completar el onboarding. Inténtalo de nuevo.');
         setLoading(false);

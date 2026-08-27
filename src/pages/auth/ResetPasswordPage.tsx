@@ -1,69 +1,35 @@
 /**
  * # ResetPasswordPage
  *
- * New-password form landed from the email reset link.
- *
- * The Supabase email redirect lands the user on `/reset-password` with a
- * recovery token in the URL; `detectSessionInUrl` in the Supabase client
- * consumes it and establishes a session, so `supabase.auth.updateUser`
- * can be called directly via {@link useAuth}.`updatePassword`.
- *
- * Handles expired/invalid tokens by detecting the absence of a session
- * and surfacing a clear error with a link to request a new reset link.
- *
- * @packageDocumentation
+ * New-password form. Uses the shared edge function verify-reset-code
+ * to validate the code, then supabase.auth.updateUser to set the
+ * new password.
  */
-
 import { useState, type FormEvent, type ReactNode } from 'react';
-import {
-  KeyRound,
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Lock,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-} from 'lucide-react';
-
+import { KeyRound, ArrowLeft, Eye, EyeOff, Lock, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Link, useRoute } from '@/lib/router';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 
-/* ------------------------------------------------------------------ *
- * Validation helpers
- * ------------------------------------------------------------------ */
-
 const MIN_PASSWORD_LENGTH: number = 8;
 
-interface FieldErrors {
-  password?: string;
-  confirmPassword?: string;
-}
+interface FieldErrors { password?: string; confirmPassword?: string; code?: string; }
 
 function validatePasswords(password: string, confirmPassword: string): FieldErrors {
   const errors: FieldErrors = {};
-  if (!password) {
-    errors.password = 'Ingresa una nueva contraseña.';
-  } else if (password.length < MIN_PASSWORD_LENGTH) {
-    errors.password = `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`;
-  }
-  if (!confirmPassword) {
-    errors.confirmPassword = 'Confirma tu nueva contraseña.';
-  } else if (password !== confirmPassword) {
-    errors.confirmPassword = 'Las contraseñas no coinciden.';
-  }
+  if (!password) errors.password = 'Ingresa una nueva contraseña.';
+  else if (password.length < MIN_PASSWORD_LENGTH) errors.password = `Mínimo ${MIN_PASSWORD_LENGTH} caracteres.`;
+  if (!confirmPassword) errors.confirmPassword = 'Confirma tu nueva contraseña.';
+  else if (password !== confirmPassword) errors.confirmPassword = 'Las contraseñas no coinciden.';
   return errors;
 }
 
-/* ------------------------------------------------------------------ *
- * ResetPasswordPage
- * ------------------------------------------------------------------ */
-
 export function ResetPasswordPage(): ReactNode {
   const { updatePassword } = useAuth();
-  const { navigate } = useRoute();
+  const { navigate, query } = useRoute();
 
+  const [code, setCode] = useState<string>(query.code ?? '');
+  const [email, setEmail] = useState<string>(query.email ?? '');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -78,41 +44,46 @@ export function ResetPasswordPage(): ReactNode {
     setSubmitError(null);
 
     const errors: FieldErrors = validatePasswords(password, confirmPassword);
+    if (!code.trim()) errors.code = 'Ingresa el código de recuperación.';
     setFieldErrors(errors);
-    if (errors.password || errors.confirmPassword) {
-      return;
-    }
-
-    // Guard against an expired/invalid recovery token: if there is no
-    // active session, updateUser would fail with a confusing error.
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
-      setSubmitError(
-        'El enlace de recuperación ha expirado o no es válido. Solicita uno nuevo para restablecer tu contraseña.'
-      );
-      return;
-    }
+    if (errors.password || errors.confirmPassword || errors.code) return;
 
     setLoading(true);
+
+    // Verify reset code via shared edge function
+    try {
+      const res: Response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-reset-code`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), code: code.trim() }),
+          signal: AbortSignal.timeout(8000),
+        },
+      );
+      if (!res.ok) {
+        const body: { error?: string } = await res.json();
+        setSubmitError(body.error ?? 'Código inválido o expirado.');
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setSubmitError('Error de conexión. Inténtalo de nuevo.');
+      setLoading(false);
+      return;
+    }
+
+    // Update password
     const result = await updatePassword(password);
     setLoading(false);
 
     if (!result.ok) {
-      const lower: string = (result.error ?? '').toLowerCase();
-      if (lower.includes('session') || lower.includes('token') || lower.includes('expired')) {
-        setSubmitError(
-          'El enlace de recuperación ha expirado o no es válido. Solicita uno nuevo para restablecer tu contraseña.'
-        );
-      } else {
-        setSubmitError(result.error ?? 'No se pudo actualizar la contraseña. Inténtalo de nuevo.');
-      }
+      setSubmitError(result.error ?? 'No se pudo actualizar la contraseña.');
       return;
     }
-
     setDone(true);
   };
 
-  /* ---- Success screen ---- */
   if (done) {
     return (
       <div className="mx-auto flex min-h-[80vh] max-w-md flex-col justify-center px-4 py-12">
@@ -121,15 +92,9 @@ export function ResetPasswordPage(): ReactNode {
             <CheckCircle2 className="h-7 w-7 text-rr-navy-700" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Contraseña actualizada</h1>
-          <p className="mt-3 text-sm text-slate-600">
-            Tu contraseña se ha restablecido correctamente. Ya puedes iniciar sesión con tu nueva
-            contraseña.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/login', { replace: true })}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-rr-navy-700 to-rr-navy-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-rr-navy-500/20 transition-all hover:shadow-lg hover:shadow-rr-red-600/30"
-          >
+          <p className="mt-3 text-sm text-slate-600">Tu contraseña se ha restablecido correctamente.</p>
+          <button type="button" onClick={() => navigate('/login', { replace: true })}
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-rr-navy-700 to-rr-navy-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md">
             Ir a iniciar sesión
           </button>
         </div>
@@ -137,162 +102,68 @@ export function ResetPasswordPage(): ReactNode {
     );
   }
 
-  /* ---- Form ---- */
   return (
     <div className="mx-auto flex min-h-[80vh] max-w-md flex-col justify-center px-4 py-12">
-      <Link
-        to="/login"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-rr-navy-700"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Volver a iniciar sesión
+      <Link to="/login" className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-rr-navy-700">
+        <ArrowLeft className="h-4 w-4" /> Volver a iniciar sesión
       </Link>
-
       <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        {/* Header */}
         <div className="mb-6 flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rr-navy-700 to-rr-navy-900 text-white">
             <KeyRound className="h-5 w-5" />
           </span>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Nueva contraseña</h1>
-            <p className="text-sm text-slate-500">Elige una contraseña nueva y segura</p>
+            <p className="text-sm text-slate-500">Ingresa el código y tu nueva contraseña</p>
           </div>
         </div>
-
         {submitError && (
-          <div
-            role="alert"
-            className="mb-5 flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-          >
-            <div className="flex items-start gap-2.5">
-              <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-              <span>{submitError}</span>
-            </div>
-            {submitError.includes('expirado') && (
-              <Link
-                to="/forgot-password"
-                className="ml-6 font-semibold text-red-800 underline hover:text-red-900"
-              >
-                Solicitar un nuevo enlace
-              </Link>
-            )}
+          <div role="alert" className="mb-5 flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" /><span>{submitError}</span>
           </div>
         )}
-
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
-          {/* New password */}
           <div>
-            <label
-              htmlFor="reset-password"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
-            >
-              Nueva contraseña
-            </label>
+            <label htmlFor="reset-email" className="mb-1.5 block text-sm font-medium text-slate-700">Correo electrónico</label>
+            <input id="reset-email" type="email" required value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 focus:border-rr-navy-500 focus:ring-2 focus:ring-rr-navy-400" placeholder="tu@correo.com" />
+          </div>
+          <div>
+            <label htmlFor="reset-code" className="mb-1.5 block text-sm font-medium text-slate-700">Código de recuperación</label>
+            <input id="reset-code" type="text" required value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              maxLength={6}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-center text-lg tracking-widest font-mono focus:border-rr-navy-500 focus:ring-2 focus:ring-rr-navy-400" placeholder="123456" />
+            {fieldErrors.code && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.code}</p>}
+          </div>
+          <div>
+            <label htmlFor="reset-password" className="mb-1.5 block text-sm font-medium text-slate-700">Nueva contraseña</label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                id="reset-password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete="new-password"
-                required
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (fieldErrors.password) {
-                    setFieldErrors((prev: FieldErrors) => ({ ...prev, password: undefined }));
-                  }
-                }}
-                aria-invalid={Boolean(fieldErrors.password)}
-                aria-describedby={fieldErrors.password ? 'reset-password-error' : undefined}
-                className={`w-full rounded-lg border py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
-                  fieldErrors.password
-                    ? 'border-red-300 focus:ring-red-400'
-                    : 'border-slate-300 focus:border-rr-navy-500 focus:ring-rr-navy-400'
-                }`}
-                placeholder="Mínimo 8 caracteres"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v: boolean) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+              <input id="reset-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required value={password}
+                onChange={(e) => { setPassword(e.target.value); if (fieldErrors.password) setFieldErrors((p: FieldErrors) => ({ ...p, password: undefined })); }}
+                className={`w-full rounded-lg border py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 ${fieldErrors.password ? 'border-red-300 focus:ring-red-400' : 'border-slate-300 focus:border-rr-navy-500 focus:ring-rr-navy-400'}`}
+                placeholder="Mínimo 8 caracteres" />
+              <button type="button" onClick={() => setShowPassword((v: boolean) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
             </div>
-            {fieldErrors.password && (
-              <p id="reset-password-error" className="mt-1.5 text-xs text-red-600">
-                {fieldErrors.password}
-              </p>
-            )}
+            {fieldErrors.password && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.password}</p>}
           </div>
-
-          {/* Confirm password */}
           <div>
-            <label
-              htmlFor="reset-confirm"
-              className="mb-1.5 block text-sm font-medium text-slate-700"
-            >
-              Confirmar contraseña
-            </label>
+            <label htmlFor="reset-confirm" className="mb-1.5 block text-sm font-medium text-slate-700">Confirmar contraseña</label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                id="reset-confirm"
-                name="confirmPassword"
-                type={showConfirm ? 'text' : 'password'}
-                autoComplete="new-password"
-                required
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  if (fieldErrors.confirmPassword) {
-                    setFieldErrors((prev: FieldErrors) => ({ ...prev, confirmPassword: undefined }));
-                  }
-                }}
-                aria-invalid={Boolean(fieldErrors.confirmPassword)}
-                aria-describedby={fieldErrors.confirmPassword ? 'reset-confirm-error' : undefined}
-                className={`w-full rounded-lg border py-2.5 pl-10 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
-                  fieldErrors.confirmPassword
-                    ? 'border-red-300 focus:ring-red-400'
-                    : 'border-slate-300 focus:border-rr-navy-500 focus:ring-rr-navy-400'
-                }`}
-                placeholder="Repite tu nueva contraseña"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm((v: boolean) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
-                aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              >
-                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+              <input id="reset-confirm" type={showConfirm ? 'text' : 'password'} autoComplete="new-password" required value={confirmPassword}
+                onChange={(e) => { setConfirmPassword(e.target.value); if (fieldErrors.confirmPassword) setFieldErrors((p: FieldErrors) => ({ ...p, confirmPassword: undefined })); }}
+                className={`w-full rounded-lg border py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 ${fieldErrors.confirmPassword ? 'border-red-300 focus:ring-red-400' : 'border-slate-300 focus:border-rr-navy-500 focus:ring-rr-navy-400'}`}
+                placeholder="Repite tu contraseña" />
+              <button type="button" onClick={() => setShowConfirm((v: boolean) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
             </div>
-            {fieldErrors.confirmPassword && (
-              <p id="reset-confirm-error" className="mt-1.5 text-xs text-red-600">
-                {fieldErrors.confirmPassword}
-              </p>
-            )}
+            {fieldErrors.confirmPassword && <p className="mt-1.5 text-xs text-red-600">{fieldErrors.confirmPassword}</p>}
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-rr-navy-700 to-rr-navy-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-rr-navy-500/20 transition-all hover:shadow-lg hover:shadow-rr-red-600/30 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Actualizando…
-              </>
-            ) : (
-              <>
-                <KeyRound className="h-4 w-4" />
-                Restablecer contraseña
-              </>
-            )}
+          <button type="submit" disabled={loading}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-rr-navy-700 to-rr-navy-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md disabled:cursor-not-allowed disabled:opacity-60">
+            {loading ? (<><Loader2 className="h-4 w-4 animate-spin" /> Actualizando…</>) : (<><KeyRound className="h-4 w-4" /> Restablecer contraseña</>)}
           </button>
         </form>
       </div>

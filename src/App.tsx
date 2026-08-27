@@ -12,37 +12,34 @@
  * - `/reset-password`          → ResetPasswordPage (PublicLayout)
  * - `/verify-email`            → VerifyEmailPage (PublicLayout)
  * - `/onboarding`              → OnboardingPage (PublicLayout)
+ * - `/auth/google-callback`    → GoogleCallbackPage
+ * - `/auth/azure-callback`     → AzureCallbackPage
  * - `/transportadoras`         → ProvidersPage (PublicLayout)
  * - `/transportadoras/:slug`   → ProviderDetailPage (PublicLayout)
- * - `/account`                 → AccountPage (auth layout)
+ * - `/account`                 → AccountPage (ProtectedRoute)
  * - `/provider/registro`       → ProviderRegister (PublicLayout)
- * - `/provider`                → ProviderDashboard (ProviderLayout)
- * - `/provider/perfil`         → ProviderProfile (ProviderLayout)
- * - `/provider/vehiculos`      → VehiclesPage (ProviderLayout)
- * - `/provider/operadores`     → DriversPage (ProviderLayout)
- * - `/provider/documentos`     → DocumentsPage (ProviderLayout)
- * - `/provider/configuracion`  → ProviderSettings (ProviderLayout)
- *
- * Public routes are wrapped in {@link PublicLayout}. Provider dashboard
- * routes are wrapped in {@link ProviderLayout}; the registration route
- * (`/provider/registro`) uses {@link PublicLayout} since the user may
- * not be authenticated yet.
- *
- * @packageDocumentation
+ * - `/provider`                → ProviderDashboard (ProtectedRoute + ProviderLayout)
+ * - `/provider/perfil`         → ProviderProfile (ProtectedRoute + ProviderLayout)
+ * - `/provider/vehiculos`      → VehiclesPage (ProtectedRoute + ProviderLayout)
+ * - `/provider/operadores`     → DriversPage (ProtectedRoute + ProviderLayout)
+ * - `/provider/documentos`     → DocumentsPage (ProtectedRoute + ProviderLayout)
+ * - `/provider/configuracion`  → ProviderSettings (ProtectedRoute + ProviderLayout)
  */
-
 import { type ReactNode } from 'react';
 
 import { AuthProvider } from '@/context/AuthContext';
 import { Router, Route, useRoute } from '@/lib/router';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { ProviderLayout } from '@/components/layout/ProviderLayout';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { LandingPage } from '@/pages/LandingPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 import { VerifyEmailPage } from '@/pages/auth/VerifyEmailPage';
+import { GoogleCallbackPage } from '@/pages/auth/GoogleCallbackPage';
+import { AzureCallbackPage } from '@/pages/auth/AzureCallbackPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { ProvidersPage } from '@/pages/ProvidersPage';
 import { ProviderDetailPage } from '@/pages/ProviderDetailPage';
@@ -55,17 +52,6 @@ import { DriversPage } from '@/pages/provider/DriversPage';
 import { DocumentsPage } from '@/pages/provider/DocumentsPage';
 import { ProviderSettings } from '@/pages/provider/ProviderSettings';
 
-/* ------------------------------------------------------------------ *
- * Route switch
- * ------------------------------------------------------------------ */
-
-/**
- * Renders the matching route based on the current hash path.
- *
- * Wrapped in {@link Router} so all child {@link Route} components share
- * the same router context. Public routes share {@link PublicLayout};
- * provider dashboard routes use {@link ProviderLayout}.
- */
 function Routes(): ReactNode {
   const { path } = useRoute();
 
@@ -114,6 +100,15 @@ function Routes(): ReactNode {
         </PublicLayout>
       </Route>
 
+      {/* ---- OAuth callbacks ---- */}
+      <Route path="/auth/google-callback">
+        <GoogleCallbackPage />
+      </Route>
+
+      <Route path="/auth/azure-callback">
+        <AzureCallbackPage />
+      </Route>
+
       <Route path="/transportadoras">
         <PublicLayout>
           <ProvidersPage />
@@ -128,10 +123,12 @@ function Routes(): ReactNode {
 
       {/* ---- Authenticated routes ---- */}
       <Route path="/account">
-        <AccountPage />
+        <ProtectedRoute>
+          <AccountPage />
+        </ProtectedRoute>
       </Route>
 
-      {/* ---- Provider routes (registration is public, dashboard is authed) ---- */}
+      {/* ---- Provider routes ---- */}
       <Route path="/provider/registro">
         <PublicLayout>
           <ProviderRegister />
@@ -139,39 +136,51 @@ function Routes(): ReactNode {
       </Route>
 
       <Route path="/provider/perfil">
-        <ProviderLayout>
-          <ProviderProfile />
-        </ProviderLayout>
+        <ProtectedRoute>
+          <ProviderLayout>
+            <ProviderProfile />
+          </ProviderLayout>
+        </ProtectedRoute>
       </Route>
 
       <Route path="/provider/vehiculos">
-        <ProviderLayout>
-          <VehiclesPage />
-        </ProviderLayout>
+        <ProtectedRoute>
+          <ProviderLayout>
+            <VehiclesPage />
+          </ProviderLayout>
+        </ProtectedRoute>
       </Route>
 
       <Route path="/provider/operadores">
-        <ProviderLayout>
-          <DriversPage />
-        </ProviderLayout>
+        <ProtectedRoute>
+          <ProviderLayout>
+            <DriversPage />
+          </ProviderLayout>
+        </ProtectedRoute>
       </Route>
 
       <Route path="/provider/documentos">
-        <ProviderLayout>
-          <DocumentsPage />
-        </ProviderLayout>
+        <ProtectedRoute>
+          <ProviderLayout>
+            <DocumentsPage />
+          </ProviderLayout>
+        </ProtectedRoute>
       </Route>
 
       <Route path="/provider/configuracion">
-        <ProviderLayout>
-          <ProviderSettings />
-        </ProviderLayout>
+        <ProtectedRoute>
+          <ProviderLayout>
+            <ProviderSettings />
+          </ProviderLayout>
+        </ProtectedRoute>
       </Route>
 
       <Route path="/provider">
-        <ProviderLayout>
-          <ProviderDashboard />
-        </ProviderLayout>
+        <ProtectedRoute>
+          <ProviderLayout>
+            <ProviderDashboard />
+          </ProviderLayout>
+        </ProtectedRoute>
       </Route>
 
       {/* ---- Fallback ---- */}
@@ -182,6 +191,7 @@ function Routes(): ReactNode {
         !path.startsWith('/reset-password') &&
         !path.startsWith('/verify-email') &&
         !path.startsWith('/onboarding') &&
+        !path.startsWith('/auth/') &&
         !path.startsWith('/transportadoras') &&
         !path.startsWith('/account') &&
         !path.startsWith('/provider') && <NotFound />}
@@ -189,26 +199,17 @@ function Routes(): ReactNode {
   );
 }
 
-/**
- * Minimal 404 fallback shown for unmatched routes.
- */
 function NotFound(): ReactNode {
   return (
     <PublicLayout>
       <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
         <p className="text-6xl font-extrabold text-rr-red-600">404</p>
         <h1 className="mt-4 text-2xl font-bold text-slate-900">Página no encontrada</h1>
-        <p className="mt-2 text-slate-500">
-          La página que buscas no existe o fue movida.
-        </p>
+        <p className="mt-2 text-slate-500">La página que buscas no existe o fue movida.</p>
       </div>
     </PublicLayout>
   );
 }
-
-/* ------------------------------------------------------------------ *
- * App
- * ------------------------------------------------------------------ */
 
 function App(): ReactNode {
   return (
