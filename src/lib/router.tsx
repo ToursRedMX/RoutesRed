@@ -80,6 +80,17 @@ interface NavigateOptions {
  */
 function getPathFromHash(): string {
   const hash: string = window.location.hash || '';
+  const pathname: string = window.location.pathname || '/';
+
+  // OAuth providers return tokens in the hash after redirecting to a normal path.
+  if (hash.startsWith('#access_token=') || hash.startsWith('#error=')) {
+    return pathname;
+  }
+
+  if (!hash && pathname !== '/') {
+    return pathname;
+  }
+
   // Strip the leading '#' (and '#' alone if that's all there is).
   let raw: string = hash.startsWith('#') ? hash.slice(1) : hash;
   // Strip a second '#' fragment — Supabase OAuth appends session tokens
@@ -219,7 +230,7 @@ export function Router({ children }: RouterProps): ReactNode {
 
   useEffect(() => {
     // Ensure the URL has a usable hash on first load.
-    if (!window.location.hash) {
+    if (!window.location.hash && window.location.pathname === '/') {
       window.location.hash = '#/';
     }
     const onChange = (): void => {
