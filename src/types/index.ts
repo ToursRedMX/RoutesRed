@@ -528,6 +528,187 @@ export interface ProviderDocument {
   updated_at: ISODateString;
 }
 
+/* ================================================================== *
+ * Quote / Auction Model (routesred schema)
+ * ================================================================== */
+
+/** Trip type for a quote request. */
+export type QuoteTripType = 'airport' | 'intercity' | 'event' | 'tour' | 'other';
+
+/** Lifecycle state for a quote request. */
+export type QuoteRequestStatus = 'draft' | 'open' | 'closed' | 'cancelled' | 'expired';
+
+/** Stop type within an itinerary. */
+export type QuoteStopType = 'origin' | 'destination' | 'stopover';
+
+/** Invite status for a provider on a quote request. */
+export type QuoteInviteStatus = 'invited' | 'participating' | 'declined' | 'expired';
+
+/** Bid status. */
+export type QuoteBidStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn' | 'expired';
+
+/** Payment status. */
+export type QuotePaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded';
+
+/** A transport request created by a user — `routesred.quote_requests`. */
+export interface QuoteRequest {
+  id: string;
+  user_id: string;
+  trip_type: QuoteTripType;
+  vehicle_type_id: string | null;
+  passenger_count: number;
+  service_date: ISODateString;
+  budget_cents: number | null;
+  currency: string;
+  notes: string | null;
+  status: QuoteRequestStatus;
+  published_at: ISODateString | null;
+  expires_at: ISODateString | null;
+  accepted_bid_id: string | null;
+  cancel_reason: string | null;
+  created_at: ISODateString;
+  updated_at: ISODateString;
+}
+
+/** An ordered itinerary stop — `routesred.quote_request_stops`. */
+export interface QuoteRequestStop {
+  id: string;
+  quote_request_id: string;
+  stop_order: number;
+  stop_type: QuoteStopType;
+  address: string;
+  coordinates: GeoJSONPoint | null;
+  scheduled_time: ISODateString | null;
+  created_at: ISODateString;
+}
+
+/** A provider invitation to bid — `routesred.quote_invites`. */
+export interface QuoteInvite {
+  id: string;
+  quote_request_id: string;
+  transport_provider_id: string;
+  status: QuoteInviteStatus;
+  decline_reason: string | null;
+  invited_at: ISODateString;
+  responded_at: ISODateString | null;
+  created_at: ISODateString;
+  updated_at: ISODateString;
+}
+
+/** A provider's price quote — `routesred.quote_bids`. */
+export interface QuoteBid {
+  id: string;
+  quote_request_id: string;
+  transport_provider_id: string;
+  total_cents: number;
+  commission_cents: number;
+  net_provider_cents: number;
+  currency: string;
+  estimated_time_text: string | null;
+  terms: string | null;
+  valid_until: ISODateString | null;
+  status: QuoteBidStatus;
+  vehicle_count: number;
+  is_combination: boolean;
+  withdrawn_at: ISODateString | null;
+  created_at: ISODateString;
+  updated_at: ISODateString;
+}
+
+/** A vehicle linked to a bid — `routesred.quote_bid_vehicles`. */
+export interface QuoteBidVehicle {
+  id: string;
+  quote_bid_id: string;
+  vehicle_id: string;
+  created_at: ISODateString;
+}
+
+/** Audit log entry — `routesred.quote_events`. */
+export interface QuoteEvent {
+  id: string;
+  quote_request_id: string;
+  event_type: string;
+  actor_user_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: ISODateString;
+}
+
+/** Payment record — `routesred.quote_payments`. */
+export interface QuotePayment {
+  id: string;
+  quote_request_id: string;
+  quote_bid_id: string;
+  user_id: string;
+  stripe_session_id: string | null;
+  stripe_payment_intent_id: string | null;
+  total_cents: number;
+  commission_cents: number;
+  net_provider_cents: number;
+  currency: string;
+  status: QuotePaymentStatus;
+  created_at: ISODateString;
+  updated_at: ISODateString;
+}
+
+/** DTO returned by `get_user_quote_requests_routesred`. */
+export interface UserQuoteRequestDTO {
+  id: string;
+  trip_type: QuoteTripType;
+  passenger_count: number;
+  service_date: ISODateString;
+  status: QuoteRequestStatus;
+  published_at: ISODateString | null;
+  expires_at: ISODateString | null;
+  bid_count: number;
+  created_at: ISODateString;
+  vehicle_type_name: string | null;
+}
+
+/** DTO returned by `get_quote_bids_for_user_routesred` (no contact info). */
+export interface QuoteBidForUserDTO {
+  id: string;
+  total_cents: number;
+  commission_cents: number;
+  currency: string;
+  estimated_time_text: string | null;
+  terms: string | null;
+  status: QuoteBidStatus;
+  vehicle_count: number;
+  is_combination: boolean;
+  created_at: ISODateString;
+  provider_display_name: string;
+  provider_rating_average: number;
+  provider_rating_count: number;
+  provider_slug: string;
+}
+
+/** DTO returned by `get_provider_quote_invites_routesred`. */
+export interface ProviderQuoteInviteDTO {
+  quote_request_id: string;
+  trip_type: QuoteTripType;
+  passenger_count: number;
+  service_date: ISODateString;
+  expires_at: ISODateString;
+  invite_status: QuoteInviteStatus;
+  has_bid: boolean;
+  vehicle_type_name: string | null;
+  bid_status: QuoteBidStatus | null;
+}
+
+/** DTO returned by `get_quote_detail_for_provider_routesred`. */
+export interface QuoteDetailForProviderDTO {
+  trip_type: QuoteTripType;
+  passenger_count: number;
+  service_date: ISODateString;
+  expires_at: ISODateString;
+  notes: string | null;
+  budget_cents: number | null;
+  vehicle_type_name: string | null;
+  invite_status: QuoteInviteStatus;
+  existing_bid_id: string | null;
+  existing_bid_status: QuoteBidStatus | null;
+}
+
 /**
  * Status of a provider↔agency commercial link.
  *

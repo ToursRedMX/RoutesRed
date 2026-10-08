@@ -43,6 +43,8 @@ import { AzureCallbackPage } from '@/pages/auth/AzureCallbackPage';
 import { OnboardingPage } from '@/pages/OnboardingPage';
 import { ProvidersPage } from '@/pages/ProvidersPage';
 import { ProviderDetailPage } from '@/pages/ProviderDetailPage';
+import { QuoteRequestPage } from '@/pages/QuoteRequestPage';
+import { QuoteDetailPage } from '@/pages/QuoteDetailPage';
 import { AccountPage } from '@/pages/AccountPage';
 import { ProviderDashboard } from '@/pages/provider/ProviderDashboard';
 import { ProviderRegister } from '@/pages/provider/ProviderRegister';
@@ -51,6 +53,7 @@ import { VehiclesPage } from '@/pages/provider/VehiclesPage';
 import { DriversPage } from '@/pages/provider/DriversPage';
 import { DocumentsPage } from '@/pages/provider/DocumentsPage';
 import { ProviderSettings } from '@/pages/provider/ProviderSettings';
+import { ProviderQuoteInboxPage } from '@/pages/provider/ProviderQuoteInboxPage';
 
 function Routes(): ReactNode {
   const { path } = useRoute();
@@ -121,6 +124,23 @@ function Routes(): ReactNode {
         </PublicLayout>
       </Route>
 
+      {/* ---- Quote routes ---- */}
+      <Route path="/cotizar">
+        <ProtectedRoute>
+          <PublicLayout>
+            <QuoteRequestPage />
+          </PublicLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/cotizar/:id">
+        <ProtectedRoute>
+          <PublicLayout>
+            <QuoteDetailPage />
+          </PublicLayout>
+        </ProtectedRoute>
+      </Route>
+
       {/* ---- Authenticated routes ---- */}
       <Route path="/account">
         <ProtectedRoute>
@@ -171,6 +191,14 @@ function Routes(): ReactNode {
         <ProtectedRoute>
           <ProviderLayout>
             <ProviderSettings />
+          </ProviderLayout>
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/provider/solicitudes">
+        <ProtectedRoute>
+          <ProviderLayout>
+            <ProviderQuoteInboxPage />
           </ProviderLayout>
         </ProtectedRoute>
       </Route>

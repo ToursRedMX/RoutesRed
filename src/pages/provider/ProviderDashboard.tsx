@@ -220,7 +220,6 @@ export function ProviderDashboard(): ReactNode {
             title="Solicitudes"
             description="Gestiona las solicitudes de servicio entrantes."
             to="/provider/solicitudes"
-            disabled
           />
           <QuickAction
             icon={Wallet}

@@ -1,0 +1,15 @@
+[functions.stripe-checkout]
+verify_jwt = true
+entrypoint = "./functions/stripe-checkout/index.ts"
+
+[functions.stripe-webhook]
+verify_jwt = false
+entrypoint = "./functions/stripe-webhook/index.ts"
+
+[functions.routesred-quote-checkout]
+verify_jwt = true
+entrypoint = "./functions/routesred-quote-checkout/index.ts"
+
+[functions.routesred-quote-webhook]
+verify_jwt = false
+entrypoint = "./functions/routesred-quote-webhook/index.ts"

@@ -76,7 +76,7 @@ const PRIMARY_NAV: NavItem[] = [
 
 /** Upcoming navigation (disabled with "Próximamente" badge). */
 const UPCOMING_NAV: NavItem[] = [
-  { to: '/provider/solicitudes', label: 'Solicitudes', icon: ClipboardList, disabled: true, badge: 'Próximamente' },
+  { to: '/provider/solicitudes', label: 'Solicitudes', icon: ClipboardList },
   { to: '/provider/cotizaciones', label: 'Cotizaciones', icon: FileSpreadsheet, disabled: true, badge: 'Próximamente' },
   { to: '/provider/reservas', label: 'Reservas', icon: CalendarCheck, disabled: true, badge: 'Próximamente' },
   { to: '/provider/rutas', label: 'Rutas', icon: Route, disabled: true, badge: 'Próximamente' },
