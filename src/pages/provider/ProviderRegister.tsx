@@ -122,11 +122,22 @@ export function ProviderRegister(): ReactNode {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // If the user already owns a provider, redirect to the dashboard.
+  // If the user already owns a provider, finish onboarding and open the dashboard.
   useEffect(() => {
-    if (!providerLoading && provider) {
+    if (providerLoading || !provider) return;
+
+    void (async (): Promise<void> => {
+      const { error: onboardingError } = await supabase
+        .schema('routesred')
+        .rpc('complete_onboarding', { p_platform: 'routesred' });
+
+      if (onboardingError) {
+        setError(onboardingError.message);
+        return;
+      }
+
       navigate('/provider', { replace: true });
-    }
+    })();
   }, [providerLoading, provider, navigate]);
 
   // Pre-fill email from the auth user.
@@ -173,6 +184,16 @@ export function ProviderRegister(): ReactNode {
 
         if (rpcError) {
           setError(rpcError.message);
+          setSubmitting(false);
+          return;
+        }
+
+        const { error: onboardingError } = await supabase
+          .schema('routesred')
+          .rpc('complete_onboarding', { p_platform: 'routesred' });
+
+        if (onboardingError) {
+          setError(onboardingError.message);
           setSubmitting(false);
           return;
         }

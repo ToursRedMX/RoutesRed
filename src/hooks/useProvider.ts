@@ -59,6 +59,7 @@ export function useProvider(): UseProviderResult {
     // provider the current user is linked to. We pick the first active
     // membership; a user typically owns exactly one provider.
     const { data, error: rpcError } = await supabase
+      .schema('routesred')
       .from('transport_provider_users')
       .select(
         'transport_provider_id, role, status, transport_providers!inner(*)',
