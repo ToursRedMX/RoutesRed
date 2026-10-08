@@ -151,24 +151,25 @@ export function ProviderRegister(): ReactNode {
       setError(null);
       setSubmitting(true);
       try {
-        const { error: rpcError } = await supabase.rpc('create_provider', {
-          p_provider_type: form.provider_type,
-          p_first_name: form.first_name || null,
-          p_last_name: form.last_name || null,
-          p_legal_name: form.legal_name || null,
-          p_trade_name: form.trade_name || null,
-          p_legal_representative: form.legal_representative || null,
-          p_rfc: form.rfc || null,
-          p_description: form.description || null,
-          p_phone: form.phone || null,
-          p_email: form.email || null,
-          p_website: form.website || null,
-          p_state: form.state || null,
-          p_city: form.city || null,
-          p_address: form.address || null,
-          p_postal_code: form.postal_code || null,
-          p_country_code: 'MX',
-        });
+        const { error: rpcError } = await supabase
+          .schema('routesred')
+          .rpc('create_provider', {
+            p_provider_type: form.provider_type,
+            p_first_name: form.first_name || null,
+            p_last_name: form.last_name || null,
+            p_legal_name: form.legal_name || null,
+            p_trade_name: form.trade_name || null,
+            p_legal_representative: form.legal_representative || null,
+            p_rfc: form.rfc || null,
+            p_description: form.description || null,
+            p_phone: form.phone || null,
+            p_email: form.email || null,
+            p_website: form.website || null,
+            p_state: form.state || null,
+            p_city: form.city || null,
+            p_address: form.address || null,
+            p_postal_code: form.postal_code || null,
+          });
 
         if (rpcError) {
           setError(rpcError.message);
