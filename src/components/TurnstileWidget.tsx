@@ -88,7 +88,14 @@ async function loadPublicSiteKey(): Promise<string> {
 export function TurnstileWidget({ onToken, onExpire, onError }: TurnstileWidgetProps): ReactNode {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const onTokenRef = useRef(onToken);
+  const onExpireRef = useRef(onExpire);
+  const onErrorRef = useRef(onError);
   const [siteKey, setSiteKey] = useState<string>(configuredSiteKey);
+
+  onTokenRef.current = onToken;
+  onExpireRef.current = onExpire;
+  onErrorRef.current = onError;
   const [loadError, setLoadError] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(!configuredSiteKey);
 
@@ -107,13 +114,13 @@ export function TurnstileWidget({ onToken, onExpire, onError }: TurnstileWidgetP
         if (cancelled) return;
         setLoading(false);
         setLoadError(true);
-        onError?.();
+        onErrorRef.current?.();
       });
 
     return (): void => {
       cancelled = true;
     };
-  }, [onError]);
+  }, []);
 
   useEffect((): (() => void) | undefined => {
     if (!siteKey) return undefined;
@@ -124,21 +131,21 @@ export function TurnstileWidget({ onToken, onExpire, onError }: TurnstileWidgetP
         if (cancelled || !containerRef.current || !window.turnstile) return;
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
-          callback: (token: string): void => onToken(token),
+          callback: (token: string): void => onTokenRef.current(token),
           'expired-callback': (): void => {
-            onToken('');
-            onExpire?.();
+            onTokenRef.current('');
+            onExpireRef.current?.();
           },
           'error-callback': (): void => {
-            onToken('');
-            onError?.();
+            onTokenRef.current('');
+            onErrorRef.current?.();
           },
         });
       })
       .catch((): void => {
         if (!cancelled) {
           setLoadError(true);
-          onError?.();
+          onErrorRef.current?.();
         }
       });
 
@@ -149,7 +156,7 @@ export function TurnstileWidget({ onToken, onExpire, onError }: TurnstileWidgetP
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, onToken, onExpire, onError]);
+  }, [siteKey]);
 
   if (loading) {
     return <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">Cargando verificador…</div>;
