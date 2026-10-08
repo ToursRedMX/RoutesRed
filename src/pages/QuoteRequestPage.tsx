@@ -64,8 +64,8 @@ export function QuoteRequestPage(): ReactNode {
   useEffect(() => {
     (async () => {
       const [vtRes, apRes] = await Promise.all([
-        supabase.from('vehicle_types').select('*').eq('active', true).order('sort_order'),
-        supabase.from('airports').select('*').eq('active', true).order('city'),
+        supabase.schema('routesred').from('vehicle_types').select('*').eq('active', true).order('sort_order'),
+        supabase.schema('routesred').from('airports').select('*').eq('active', true).order('city'),
       ]);
       if (vtRes.data) setVehicleTypes(vtRes.data);
       if (apRes.data) setAirports(apRes.data);
@@ -99,7 +99,7 @@ export function QuoteRequestPage(): ReactNode {
         scheduled_time: s.scheduled_time ? new Date(`${serviceDate}T${s.scheduled_time}`).toISOString() : null,
       }));
 
-      const { data: reqId, error: createErr } = await supabase.rpc('create_quote_request_routesred', {
+      const { data: reqId, error: createErr } = await supabase.schema('routesred').rpc('create_quote_request_routesred', {
         p_trip_type: tripType,
         p_passenger_count: passengerCount,
         p_service_date: serviceDateTime,
@@ -112,7 +112,7 @@ export function QuoteRequestPage(): ReactNode {
       if (createErr) throw createErr;
       if (!reqId) throw new Error('No se pudo crear la solicitud');
 
-      const { error: pubErr } = await supabase.rpc('publish_quote_request_routesred', {
+      const { error: pubErr } = await supabase.schema('routesred').rpc('publish_quote_request_routesred', {
         p_quote_request_id: reqId,
       });
       if (pubErr) throw pubErr;

@@ -52,20 +52,21 @@ export function QuoteDetailPage(): ReactNode {
     if (!requestId) return;
     setLoading(true);
 
-    const { data: reqs, error: reqErr } = await supabase.rpc('get_user_quote_requests_routesred');
+    const { data: reqs, error: reqErr } = await supabase.schema('routesred').rpc('get_user_quote_requests_routesred');
     if (reqErr) { setError(reqErr.message); setLoading(false); return; }
     const req = (reqs as UserQuoteRequestDTO[])?.find(r => r.id === requestId) ?? null;
     setRequest(req);
 
     if (req) {
       const { data: stopsData } = await supabase
+        .schema('routesred')
         .from('quote_request_stops')
         .select('*')
         .eq('quote_request_id', requestId)
         .order('stop_order');
       if (stopsData) setStops(stopsData as QuoteRequestStop[]);
 
-      const { data: bidsData, error: bidsErr } = await supabase.rpc('get_quote_bids_for_user_routesred', {
+      const { data: bidsData, error: bidsErr } = await supabase.schema('routesred').rpc('get_quote_bids_for_user_routesred', {
         p_quote_request_id: requestId,
       });
       if (bidsErr) { setError(bidsErr.message); }
@@ -79,7 +80,7 @@ export function QuoteDetailPage(): ReactNode {
   const handleAccept = useCallback(async (bidId: string): Promise<void> => {
     setActionLoading(true);
     setError(null);
-    const { error: err } = await supabase.rpc('accept_quote_bid_routesred', { p_quote_bid_id: bidId });
+    const { error: err } = await supabase.schema('routesred').rpc('accept_quote_bid_routesred', { p_quote_bid_id: bidId });
     if (err) { setError(err.message); setActionLoading(false); return; }
     await fetchData();
     setActionLoading(false);
@@ -89,7 +90,7 @@ export function QuoteDetailPage(): ReactNode {
     if (!requestId) return;
     setActionLoading(true);
     const reason = cancelReason === 'Otro motivo' ? customReason : cancelReason;
-    const { error: err } = await supabase.rpc('cancel_quote_request_routesred', {
+    const { error: err } = await supabase.schema('routesred').rpc('cancel_quote_request_routesred', {
       p_quote_request_id: requestId,
       p_cancel_reason: reason,
     });

@@ -167,16 +167,13 @@ function Hero(): ReactNode {
               Crear cuenta gratis
             </Link>
 
-            <span
-              className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-7 py-3 text-base font-semibold text-slate-300 backdrop-blur-sm sm:w-auto"
-              title="Próximamente"
+            <Link
+              to="/cotizar"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-7 py-3 text-base font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 sm:w-auto"
             >
               <ArrowRight className="h-5 w-5" />
               Solicitar cotización
-              <span className="ml-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-300">
-                Pronto
-              </span>
-            </span>
+            </Link>
           </div>
 
           {/* Quick assurance */}

@@ -39,7 +39,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Inicio' },
   { to: '/transportadoras', label: 'Transportadoras' },
-  { to: '/cotizar', label: 'Cotizar', disabled: true },
+  { to: '/cotizar', label: 'Cotizar' },
   { to: '/rutas', label: 'Rutas', disabled: true },
   { to: '/aeropuertos', label: 'Aeropuertos', disabled: true },
 ];
@@ -295,7 +295,7 @@ function Footer(): ReactNode {
               Productos
             </h3>
             <ul className="mt-4 space-y-3">
-              <FooterLink to="/cotizar" label="Cotizar transporte" disabled />
+              <FooterLink to="/cotizar" label="Cotizar transporte" />
               <FooterLink to="/rutas" label="Rutas interurbanas" disabled />
               <FooterLink to="/aeropuertos" label="Shuttles de aeropuerto" disabled />
             </ul>
