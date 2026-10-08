@@ -6,6 +6,7 @@
  * then redirects to onboarding or the dashboard.
  */
 import { useEffect, useState, type ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { supabase, registerPlatformAccess } from '@/lib/supabase';
 import { useRoute } from '@/lib/router';
 import { Loader2 } from 'lucide-react';
@@ -37,6 +38,35 @@ export function GoogleCallbackPage(): ReactNode {
             }
           }
         }
+      }
+
+      if (!sessionData.session && !sessionError) {
+        const awaitedSession = await new Promise<{
+          session: Session | null;
+          error: Error | null;
+        }>((resolve): void => {
+          let settled = false;
+          let subscription: { subscription: { unsubscribe: () => void } } | null = null;
+          let timeoutId: number | null = null;
+          const finish = (session: Session | null, error: Error | null): void => {
+            if (settled) return;
+            settled = true;
+            subscription?.subscription.unsubscribe();
+            if (timeoutId !== null) window.clearTimeout(timeoutId);
+            resolve({ session, error });
+          };
+          subscription = supabase.auth.onAuthStateChange((_event, nextSession): void => {
+            if (nextSession) finish(nextSession, null);
+          }).data;
+          timeoutId = window.setTimeout((): void => {
+            finish(null, new Error('OAuth session timeout'));
+          }, 8000);
+        });
+        if (awaitedSession.error || !awaitedSession.session) {
+          setError('No se pudo completar el inicio de sesión con Google.');
+          return;
+        }
+        sessionData = { session: awaitedSession.session };
       }
 
       if (sessionError || !sessionData.session) {
