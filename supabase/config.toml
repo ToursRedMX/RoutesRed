@@ -6,6 +6,10 @@ entrypoint = "./functions/stripe-checkout/index.ts"
 verify_jwt = false
 entrypoint = "./functions/stripe-webhook/index.ts"
 
+[functions.routesred-public-config]
+verify_jwt = false
+entrypoint = "./functions/routesred-public-config/index.ts"
+
 [functions.routesred-quote-checkout]
 verify_jwt = true
 entrypoint = "./functions/routesred-quote-checkout/index.ts"
