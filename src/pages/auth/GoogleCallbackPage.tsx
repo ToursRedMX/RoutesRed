@@ -16,7 +16,28 @@ export function GoogleCallbackPage(): ReactNode {
 
   useEffect((): void => {
     void (async (): Promise<void> => {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      let { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+      if (!sessionData.session && !sessionError) {
+        const fullHash = window.location.hash || '';
+        if (fullHash.includes('access_token')) {
+          const params = new URLSearchParams(fullHash.split('#').pop() ?? '');
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          if (accessToken && refreshToken) {
+            const { error: setError2 } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (setError2) {
+              sessionError = setError2;
+            } else {
+              const retry = await supabase.auth.getSession();
+              sessionData = retry.data;
+            }
+          }
+        }
+      }
 
       if (sessionError || !sessionData.session) {
         setError('No se pudo completar el inicio de sesión con Google.');

@@ -81,7 +81,13 @@ interface NavigateOptions {
 function getPathFromHash(): string {
   const hash: string = window.location.hash || '';
   // Strip the leading '#' (and '#' alone if that's all there is).
-  const raw: string = hash.startsWith('#') ? hash.slice(1) : hash;
+  let raw: string = hash.startsWith('#') ? hash.slice(1) : hash;
+  // Strip a second '#' fragment — Supabase OAuth appends session tokens
+  // as `#access_token=…&refresh_token=…` after the router's own `#/path`.
+  const secondHash: number = raw.indexOf('#');
+  if (secondHash !== -1) {
+    raw = raw.slice(0, secondHash);
+  }
   if (raw === '' || raw === '/') {
     return '/';
   }
