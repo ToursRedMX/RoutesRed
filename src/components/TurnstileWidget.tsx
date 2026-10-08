@@ -80,7 +80,7 @@ async function loadPublicSiteKey(): Promise<string> {
     throw new Error('Invalid Turnstile configuration');
   }
 
-  const siteKey = (data as PublicConfigResponse).turnstile_site_key.trim();
+  const siteKey = (data as PublicConfigResponse).turnstile_site_key?.trim() ?? '';
   if (!siteKey) throw new Error('Empty Turnstile site key');
   return siteKey;
 }

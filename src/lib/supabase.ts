@@ -22,9 +22,6 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    experimental: {
-      passkey: true,
-    },
   },
 });
 
@@ -228,13 +225,20 @@ async function deleteIncompleteSignup(userId: string): Promise<void> {
 export async function registerPlatformAccess(): Promise<{
   onboarding_completed: boolean;
 } | null> {
-  const { data, error } = await supabase.rpc('register_platform_access');
+  const { data, error } = await supabase
+    .schema('routesred')
+    .rpc('register_platform_access', {
+      p_platform: 'routesred',
+      p_source: 'routesred',
+    });
   if (error) return null;
   return data as { onboarding_completed: boolean } | null;
 }
 
 export async function completePlatformOnboarding(): Promise<boolean> {
-  const { data, error } = await supabase.rpc('complete_onboarding');
+  const { data, error } = await supabase
+    .schema('routesred')
+    .rpc('complete_onboarding', { p_platform: 'routesred' });
   if (error) return false;
   return Boolean(data);
 }

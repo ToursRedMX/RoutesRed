@@ -127,8 +127,8 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
     }, INACTIVITY_TIMEOUT_MS);
   }, [session]);
 
-  useEffect((): (() => void) => {
-    if (!session) return;
+  useEffect((): (() => void) | undefined => {
+    if (!session) return undefined;
     resetInactivityTimer();
 
     const onActivity = (): void => resetInactivityTimer();

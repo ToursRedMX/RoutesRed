@@ -88,7 +88,7 @@ export function MfaGate({ children }: MfaGateProps): ReactNode {
     try {
       const { data: factorsData } = await supabase.auth.mfa.listFactors();
       const factors: FactorList = (factorsData as unknown as FactorList) ?? { totp: [] };
-      const verified: MfaFactor = (factors.totp ?? []).find(
+      const verified: MfaFactor | undefined = (factors.totp ?? []).find(
         (f: MfaFactor): boolean => f.status === 'verified',
       );
       if (!verified) {

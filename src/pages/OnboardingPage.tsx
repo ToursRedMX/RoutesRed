@@ -58,12 +58,29 @@ export function OnboardingPage(): ReactNode {
     setError(null);
     setLoading(true);
     try {
-      const { error: rpcError } = await supabase.rpc('complete_onboarding');
-      if (rpcError) {
+      const { error: registerError } = await supabase
+        .schema('routesred')
+        .rpc('register_platform_access', {
+          p_platform: 'routesred',
+          p_source: 'routesred',
+        });
+
+      if (registerError) {
+        setError('No se pudo activar tu acceso para cotizar. Inténtalo de nuevo.');
+        setLoading(false);
+        return;
+      }
+
+      const { data: completed, error: completeError } = await supabase
+        .schema('routesred')
+        .rpc('complete_onboarding', { p_platform: 'routesred' });
+
+      if (completeError || completed !== true) {
         setError('No se pudo completar el onboarding. Inténtalo de nuevo.');
         setLoading(false);
         return;
       }
+
       navigate('/', { replace: true });
     } catch {
       setError('Error de conexión. Verifica tu internet e inténtalo de nuevo.');

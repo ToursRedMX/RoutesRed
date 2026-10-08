@@ -16,16 +16,18 @@ export function useTurnstileEnabled(): { turnstileEnabled: boolean; loading: boo
       .from('platform_settings')
       .select('turnstile_auth_enabled')
       .maybeSingle()
-      .then(({ data }: { data: { turnstile_auth_enabled?: boolean } | null }): void => {
-        if (!active) return;
-        setTurnstileEnabled(data?.turnstile_auth_enabled ?? false);
-        setLoading(false);
-      })
-      .catch((): void => {
-        if (!active) return;
-        setTurnstileEnabled(false);
-        setLoading(false);
-      });
+      .then(
+        ({ data }: { data: { turnstile_auth_enabled?: boolean } | null }): void => {
+          if (!active) return;
+          setTurnstileEnabled(data?.turnstile_auth_enabled ?? false);
+          setLoading(false);
+        },
+        (): void => {
+          if (!active) return;
+          setTurnstileEnabled(false);
+          setLoading(false);
+        },
+      );
     return (): void => {
       active = false;
     };
