@@ -238,7 +238,7 @@ export async function registerPlatformAccess(): Promise<{
 export async function completePlatformOnboarding(): Promise<boolean> {
   const { data, error } = await supabase
     .schema('routesred')
-    .rpc('complete_onboarding', { p_platform: 'routesred' });
+    .rpc('complete_onboarding');
   if (error) return false;
   return Boolean(data);
 }

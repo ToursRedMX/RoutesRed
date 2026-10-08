@@ -129,7 +129,7 @@ export function ProviderRegister(): ReactNode {
     void (async (): Promise<void> => {
       const { error: onboardingError } = await supabase
         .schema('routesred')
-        .rpc('complete_onboarding', { p_platform: 'routesred' });
+        .rpc('complete_onboarding');
 
       if (onboardingError) {
         setError(onboardingError.message);
@@ -190,7 +190,7 @@ export function ProviderRegister(): ReactNode {
 
         const { error: onboardingError } = await supabase
           .schema('routesred')
-          .rpc('complete_onboarding', { p_platform: 'routesred' });
+          .rpc('complete_onboarding');
 
         if (onboardingError) {
           setError(onboardingError.message);
